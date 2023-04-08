@@ -1,6 +1,4 @@
 # windwos_IniManager
-<<<<<<< HEAD
 IniManager
-=======
-IniManager
->>>>>>> 4ccc24da7577d95ac95ca4719e9ef783058fcc6a
+Secondary packaging based on win32 api
+基于win32 api的二次封装
