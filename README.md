@@ -1,2 +1,0 @@
-# windwos_IniManager
-IniManager
