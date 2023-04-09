@@ -20,30 +20,36 @@ CInI::~CInI()
 
 }
 
+
 std::string CInI::InIfindA(std::string section, std::string name)
 {
     char* temp = (char*)malloc(sizeof(char) * 100);
     DWORD status = ::GetPrivateProfileStringA(section.c_str(), name.c_str(), "", temp, 100, this->lpFileNameA);
     if (!status)
     {
-        return "error";//eummark
+        return "";//eummark
         free(temp);
     }
     std::string result = temp;
     free(temp);
+
     return result;
 }
 
 std::wstring CInI::InIfindW(std::wstring section, std::wstring name)
 {
-    WCHAR *content = (wchar_t*)malloc(sizeof(wchar_t) * 200);
+    WCHAR* content = (wchar_t*)malloc(sizeof(wchar_t) * 200);
     DWORD status = ::GetPrivateProfileStringW(section.c_str(), name.c_str(), TEXT(""), content, 200, this->lpFileNameW);
+
     std::wstring result = content;
-    free(content);
-    //return status ? L"INI READ ERROR" : (result.size() == 0 ? L"RESULT NULL" : L"");
-    if (!status || result.size()==0)
+    free(content); // Free the memory allocated by malloc
+
+    if (!status || result.empty())
+    {
         return L"";
+    }
     return result;
+
 }
 
 CInI::InIexstat CInI::InIexistA(const std::string& section, const std::string& name, const std::string& value)
@@ -206,3 +212,184 @@ int CInI::CountSectionKeyA(const  std::string& section)
    
     return cout;
 }
+
+CInI::InIexstat CInI::GetAllSectionKeyA(std::vector<std::string>& section_list, std::vector<std::string>& sectionkey_list)
+{
+
+    const int bufferSize = 1024;
+    char buffer[bufferSize];
+
+    for (const auto& sectionName : section_list)
+    {
+        GetPrivateProfileStringA(sectionName.c_str(), NULL, NULL, buffer, bufferSize, this->lpFileNameA);
+
+        char* p = buffer;
+        while (*p)
+        {
+            sectionkey_list.push_back(p);
+            p += strlen(p) + 1;
+        }
+    }
+
+    return INI_READ_PATHERROR;
+}
+CInI::InIexstat CInI::GetAllSectionKeyW(std::vector<std::wstring>& section_list,  std::vector<std::wstring>& sectionkey_list)
+{
+    const int bufferSize = 1024;
+    wchar_t buffer[bufferSize];
+
+    for (const auto& sectionName : section_list)
+    {
+        GetPrivateProfileStringW(sectionName.c_str(), NULL, NULL, buffer, bufferSize, this->lpFileNameW);
+
+        wchar_t* p = buffer;
+        while (*p)
+        {
+            sectionkey_list.push_back(p);
+            p += wcslen(p) + 1;
+        }
+    }
+    return INI_READ_PATHERROR;
+}
+
+
+
+
+CInI::InIexstat CInI::GetAllSectionKeyA(const std::string& sectionName, std::vector<std::string>& sectionkey_list)
+{
+    const int bufferSize = 1024;
+    char buffer[bufferSize];
+
+    if (GetPrivateProfileStringA(sectionName.c_str(), NULL, NULL, buffer, bufferSize, this->lpFileNameA) == 0)
+        return INI_READ_SECKEY_ERR;
+
+    char* p = buffer;
+    while (*p)
+    {
+        sectionkey_list.push_back(p);
+        p += strlen(p) + 1;
+    }
+
+    return INI_READ_SECKEY_SUCC;
+}
+
+CInI::InIexstat CInI::GetAllSectionKeyW(const std::wstring& sectionName, std::vector<std::wstring>& sectionkey_list)
+{
+    const int bufferSize = 1024;
+    wchar_t buffer[bufferSize];
+
+    if (GetPrivateProfileStringW(sectionName.c_str(), NULL, NULL, buffer, bufferSize, this->lpFileNameW) == 0)
+        return INI_READ_SECKEY_ERR;
+
+    wchar_t* p = buffer;
+    while (*p)
+    {
+        sectionkey_list.push_back(p);
+        p += wcslen(p) + 1;
+    }
+
+    return INI_READ_SECKEY_SUCC;
+}
+
+
+
+
+
+
+
+
+CInI::P_InIData CInI::ReadAllW(int)
+{
+
+}
+
+std::vector<CInI::INI_MAP<std::wstring>> CInI::ReadAllW()
+{
+    std::vector<INI_MAP<std::wstring>> result;
+    wchar_t buffer[1024];
+    GetPrivateProfileSectionNames(buffer, 1024, this->lpFileNameW);
+    wchar_t* section = buffer;
+    while (*section != '\0') {
+        INI_MAP<std::wstring> iniSection;
+        iniSection.section = section;
+        wchar_t keyBuffer[1024];
+        GetPrivateProfileString(section, nullptr, nullptr, keyBuffer, 1024, this->lpFileNameW);
+        wchar_t* key = keyBuffer;
+        while (*key != '\0') {
+            wchar_t valueBuffer[1024];
+            GetPrivateProfileString(section, key, nullptr, valueBuffer, 1024, this->lpFileNameW);
+            iniSection.parameters[key] = valueBuffer;
+            key += wcslen(key) + 1;
+        }
+        result.push_back(iniSection);
+        section += wcslen(section) + 1;
+    }
+    return result;
+}
+
+
+ /* CInI::M_InIData CInI::ReadAllA()
+{
+
+}
+
+CInI::P_InIData CInI::ReadAllA(int)
+{
+    
+}*/
+
+
+char* CInI::wchUTF82StringUFT8(const const wchar_t* pWCStrKey)
+{
+    int pSize = WideCharToMultiByte(CP_OEMCP, 0, pWCStrKey, wcslen(pWCStrKey), NULL, 0, NULL, NULL);
+    char* pCStrKey = new char[pSize + 1];
+
+    WideCharToMultiByte(CP_OEMCP, 0, pWCStrKey, wcslen(pWCStrKey), pCStrKey, pSize, NULL, NULL);
+    pCStrKey[pSize] = '\0';
+
+    char* ans;
+    int wcsLen = MultiByteToWideChar(CP_UTF8, NULL, pCStrKey, (int)strlen(pCStrKey), NULL, 0);
+    wchar_t* wszString = new wchar_t[wcsLen + 1];
+    MultiByteToWideChar(CP_UTF8, NULL, pCStrKey, (int)strlen(pCStrKey), wszString, wcsLen);
+    wszString[wcsLen] = '\0';
+    int len = WideCharToMultiByte(CP_ACP, 0, wszString, (int)wcslen(wszString), NULL, 0, NULL, NULL);
+    char* c = new char[len + 1];
+    WideCharToMultiByte(CP_ACP, 0, wszString, (int)wcslen(wszString), c, len, NULL, NULL);
+    c[len] = '\0';
+    delete[] wszString;
+    ans = c;
+    return ans;
+}
+
+std::wstring CInI::strToWstr(std::string input)
+{
+    size_t len = input.size();
+    wchar_t* b = (wchar_t*)malloc((len + 1) * sizeof(wchar_t));
+    MBCSToUnicode(b, input.c_str());
+    std::wstring r(b);
+    free(b);
+    return r;
+}
+
+wchar_t* CInI::MBCSToUnicode(wchar_t* buff, const char* str)
+{
+    wchar_t* wp = buff;
+    char* p = (char*)str;
+    while (*p)
+    {
+        if (*p & 0x80)
+        {
+            *wp = *(wchar_t*)p;
+            p++;
+        }
+        else
+        {
+            *wp = (wchar_t)*p;
+        }
+        wp++;
+        p++;
+    }
+    *wp = 0x0000;
+    return buff;
+}
+

@@ -5,7 +5,15 @@
 #include <iostream>
 #include <vector>
 #include <map>
-
+#include <comutil.h>  
+#include <tchar.h>
+#include <windows.h>
+#include <comutil.h>  
+#include <unknwn.h>
+#include <queue>
+#include <thread>
+#include <stdio.h>
+#include <deque>
 #ifdef UNICODE
 #define FindValue FindValueW
 #else
@@ -30,6 +38,13 @@
 #define GetAllSection GetAllSectionA
 #endif
 
+
+#ifdef UNICODE
+#define GetAllSectionKey GetAllSectionKeyW
+#else
+#define GetAllSectionKey GetAllSectionKeyA
+#endif
+
 #ifdef UNICODE
 #define CountSection CountSectionW
 #else
@@ -42,14 +57,46 @@
 #define CountSectionKey CountSectionKeyA
 #endif
 
+
+
+#ifdef UNICODE
+#define ReadAll ReadAllW
+#else
+#define ReadAll ReadAllA
+#endif
+
+
+#define _MAPTYPE_ 1
+#define _PAIRTYPE_ 2
+
+
 class CInI
 {
+
     public :
         template<typename T>
-        T FindValueA(const std::string &section, const std::string &name)
+        T  FindValueW(const std::wstring& section, const std::wstring& name)
+        {
+
+            std::wstring value = InIfindW(section, name);
+            if constexpr (std::is_same<T, std::wstring>::value)
+                return value;
+            else if constexpr (std::is_same<T, std::string>::value)
+                return wchUTF82StringUFT8(value.c_str());
+            else
+            {
+                std::wstringstream ss(value);
+                T result;
+                ss >> result;
+                return result;
+            }
+        }
+
+        template<typename T>
+        T FindValueA(const std::string& section, const std::string& name)
         {
             #if defined(NDEBUG) && defined(UNICODE)
-                #pragma message("Warning: UNICODE use")
+            #pragma message("Warning: UNICODE use")
             #endif
             std::string value = InIfindA(section, name);
             if constexpr (std::is_same<T, std::string>::value)
@@ -65,42 +112,40 @@ class CInI
                 return result;
             }
         }
-
-        template<typename T>
-        T FindValueW(const std::wstring& section, const std::wstring& name)
-        {
-            
-            std::wstring value = InIfindW(section, name);
-            if constexpr (std::is_same<T, std::wstring>::value)
-                return value;
-            else if constexpr (std::is_same<T, std::string>::value)
-                return std::string(value.begin(), value.end());
-            else
-            {
-                std::wstringstream ss(value);
-                T result;
-                ss >> result;
-                return result;
-            }
+        template<typename RA>
+        RA ReadAllT() {
+            RA result;
+            // Process the data and store the result in result
+            // ...
+            return result;
         }
         /*template<typename RA>
-        RA ReadAllA(int index)
+        RA ReadAllA(RA& data)
         {
-
+            if constexpr (std::is_same_v<RA, INI_MAP<std::wstring>>)
+                return 1;
+            else //if constexpr (std::is_same<T, std::wstring>::value)
+                return 2;
         }
         template<typename RA>
-        RA ReadAllW(const int index = )
+        RA ReadAllW()
         {
-
+            if constexpr (std::is_same_v<RA, INI_MAP<std::wstring>>)
+                return 1;
+            else //if constexpr (std::is_same<T, std::wstring>::value)
+                return 2;
         }*/
 
     public:
         typedef enum {
             INI_READ_PATHERROR = -0x03,
             INI_WRITE_ERROR = -0x02,
-            INI_READ_NOTEXIST = -0x01,
-            INI_READ_FIND = 0x00,
-            INI_READ_EXIST,
+            INI_READ_SECKEY_ERR = 0x00,
+            INI_READ_SECKEY_SUCC = 0x01,
+
+            INI_READ_NOTEXIST = 0x00,
+            INI_READ_FIND = 0x01,
+            INI_READ_EXIST = 0x01,
         }InIexstat;
 
     public:
@@ -108,12 +153,12 @@ class CInI
         template<typename T_INI>
         struct INI_MAP {
             std::wstring section;
-            std::map<std::wstring, T_INI> parameters;
+            std::map<std::wstring, std::wstring> parameters;
         };
         template<typename T_INI>
         struct INI_PAIR {
             std::wstring section;
-            std::pair<std::wstring, T_INI> parameters;
+            std::vector<std::pair<std::wstring, T_INI>> parameters;
         };
         using M_InIData = INI_MAP<std::wstring>;
         using P_InIData = INI_PAIR<std::wstring>;
@@ -157,11 +202,28 @@ class CInI
         InIexstat GetAllSectionA(std::vector<std::string> &section_list);
         InIexstat GetAllSectionW(std::vector<std::wstring> &section_list);
 
+        InIexstat GetAllSectionKeyA(std::vector<std::string>& section_list, std::vector<std::string>& sectionkey_list );
+        InIexstat GetAllSectionKeyW(std::vector<std::wstring>& section_list,  std::vector<std::wstring>& sectionkey_list);
+
+        InIexstat GetAllSectionKeyA(const std::string & sectionName, std::vector<std::string>& sectionkey_list);
+        InIexstat GetAllSectionKeyW(const std::wstring & sectionName, std::vector<std::wstring>& sectionkey_list);
+
         int CountSectionA();
-        int CountSectionW();
+        int CountSectionW(); 
         
         int CountSectionKeyA(const std::string& section);
         int CountSectionKeyW(const std::wstring& section);
+
+        P_InIData ReadAllW(int);
+        std::vector<INI_MAP<std::wstring>> ReadAllW();
+
+        M_InIData ReadAllA();
+        P_InIData ReadAllA(int);
+
+        /*M_InIData ReadAllW();
+        P_InIData ReadAllA(int);*/
+
+
     private:
         std::string target_ini_path;
         std::wstring wtarget_ini_path;
@@ -169,6 +231,11 @@ class CInI
         LPCSTR lpFileNameA;
         LPCWSTR lpFileNameW;
 
-        
+    private:
+        char* wchUTF82StringUFT8(const  wchar_t* pWCStrKey);
+        //std::string wstrToStr(std::wstring& wstr);
+        wchar_t* MBCSToUnicode(wchar_t* buff, const char* str);
+        std::wstring strToWstr(std::string input);
+
 };
 
