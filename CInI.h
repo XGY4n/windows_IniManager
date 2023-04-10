@@ -65,6 +65,12 @@
 #define ReadAll ReadAllA
 #endif
 
+#ifdef UNICODE
+#define WriteValue WriteValueW
+#else
+#define WriteValue WriteValueA
+#endif
+
 
 #define _MAPTYPE_ 1
 #define _PAIRTYPE_ 2
@@ -146,24 +152,27 @@ class CInI
             INI_READ_NOTEXIST = 0x00,
             INI_READ_FIND = 0x01,
             INI_READ_EXIST = 0x01,
+
+            INI_WRITE_ERR = 0,
+            INI_WRITE_SUCC = 1
         }InIexstat;
 
     public:
-    #ifdef UNICODE
+    //#ifdef UNICODE#else#endif
         template<typename T_INI>
         struct INI_MAP {
-            std::wstring section;
-            std::map<std::wstring, std::wstring> parameters;
+            T_INI section;
+            std::map<T_INI, T_INI> parameters;
         };
         template<typename T_INI>
         struct INI_PAIR {
-            std::wstring section;
-            std::vector<std::pair<std::wstring, T_INI>> parameters;
+            T_INI section;
+            std::vector<std::pair<T_INI, T_INI>> parameters;
         };
         using M_InIData = INI_MAP<std::wstring>;
         using P_InIData = INI_PAIR<std::wstring>;
-    #else
-        template<typename T_INI>
+    
+       /* template<typename T_INI>
         struct INI_MAP {
             std::string section;
             std::map<std::string, T_INI> parameters;
@@ -174,8 +183,8 @@ class CInI
             std::pair<std::string, T_INI> parameters;
         };
         using M_InIData = INI_MAP<std::string>;
-        using P_InIData = INI_PAIR<std::string>;
-    #endif
+        using P_InIData = INI_PAIR<std::string>;*/
+    
 
 
     public:	
@@ -214,14 +223,15 @@ class CInI
         int CountSectionKeyA(const std::string& section);
         int CountSectionKeyW(const std::wstring& section);
 
-        P_InIData ReadAllW(int);
+
+        std::vector<CInI::INI_PAIR<std::wstring>> ReadAllW(int);
         std::vector<INI_MAP<std::wstring>> ReadAllW();
 
-        M_InIData ReadAllA();
-        P_InIData ReadAllA(int);
+        std::vector<CInI::INI_MAP<std::string>> ReadAllA() ;
+        std::vector<CInI::INI_PAIR< std::string>> ReadAllA(const int);
 
-        /*M_InIData ReadAllW();
-        P_InIData ReadAllA(int);*/
+        InIexstat WriteValueA(const std::string &section, const std::string &key, const std::string& value);
+        InIexstat WriteValueW(const std::wstring& section, const std::wstring& key, const std::wstring& value);
 
 
     private:

@@ -2,15 +2,6 @@
 #include"CInI.h"
 
 
-void check(const CInI::INI_MAP<std::wstring>* input, size_t size) {
-    for (size_t i = 0; i < size; ++i) {
-        const auto& data = input[i];
-        std::wcout << L"Section: " << data.section << std::endl;
-        for (const auto& [key, value] : data.parameters) {
-            std::wcout << key << L": " << value << std::endl;
-        }
-    }
-}
 
 int main()
 {
@@ -33,7 +24,7 @@ int main()
     std::cout << std::endl;
 
     std::cout << ini.InIexist(L"a", L"e") << std::endl;//0
-    std::cout << ini.InIexist(L"a", L"v", L"1") << std::endl;//1
+    std::cout << ini.InIexist(L"a", L"s", L"жа") << std::endl;//1
     std::cout << ini.InIexist(L"a", L"v") << std::endl;//1
     std::cout << ini.InIexist(L"a", L"x") << std::endl;//0
     std::cout << ini.InIexist(L"a") << std::endl;//1
@@ -66,15 +57,20 @@ int main()
     std::cout << std::endl;
     CInI::INI_MAP<std::wstring> save;
     CInI::INI_PAIR<std::wstring> save1;
-    /*save = ini.ReadAllW();
-    save1 = ini.ReadAllW(_PAIRTYPE_);*/
-    std::vector<CInI::INI_MAP<std::wstring>> result = ini.ReadAllW();
-    for (const auto& iniSection : result) {
+
+    std::vector<CInI::INI_MAP<std::wstring>> result = ini.ReadAll();
+    for (const auto& iniSection : result) 
+    {
         std::wcout << L"[" << iniSection.section << L"]" << std::endl;
-        for (const auto& keyValue : iniSection.parameters) {
+        for (const auto& keyValue : iniSection.parameters)
+        {
             std::wcout << keyValue.first << L"=" << keyValue.second << std::endl;
         }
     }
+    std::cout<<ini.WriteValue(L"a", L"s", L"88888")<<std::endl;
+
+
+
     std::cout << std::endl;
     //check(save, 10);
     getchar();

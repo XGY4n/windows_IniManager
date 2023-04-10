@@ -126,15 +126,7 @@ CInI::InIexstat CInI::InIexistW(const std::wstring& section, const std::wstring&
     return CInI::INI_READ_EXIST;
 }
 
-/*CInI::InIexstat CInI::InIWrite(std::string msg)
-{
 
-}
-CInI::InIexstat CInI::InIWritew(std::wstring msg)
-{
-
-
-}*/
 
 CInI::InIexstat CInI::GetAllSectionA(std::vector<std::string>& section_list)
 {
@@ -295,48 +287,107 @@ CInI::InIexstat CInI::GetAllSectionKeyW(const std::wstring& sectionName, std::ve
 
 
 
-
-
-
-CInI::P_InIData CInI::ReadAllW(int)
-{
-
-}
-
 std::vector<CInI::INI_MAP<std::wstring>> CInI::ReadAllW()
 {
     std::vector<INI_MAP<std::wstring>> result;
-    wchar_t buffer[1024];
-    GetPrivateProfileSectionNames(buffer, 1024, this->lpFileNameW);
-    wchar_t* section = buffer;
-    while (*section != '\0') {
+    std::vector<std::wstring> secsave;
+    std::vector<std::wstring> keysave;
+    GetAllSectionW(secsave);
+    result.reserve(secsave.size());
+    for (const auto& section : secsave)
+    {
+        //std::wcout << section << std::endl;
         INI_MAP<std::wstring> iniSection;
         iniSection.section = section;
-        wchar_t keyBuffer[1024];
-        GetPrivateProfileString(section, nullptr, nullptr, keyBuffer, 1024, this->lpFileNameW);
-        wchar_t* key = keyBuffer;
-        while (*key != '\0') {
-            wchar_t valueBuffer[1024];
-            GetPrivateProfileString(section, key, nullptr, valueBuffer, 1024, this->lpFileNameW);
-            iniSection.parameters[key] = valueBuffer;
-            key += wcslen(key) + 1;
+        GetAllSectionKeyW(section, keysave);
+        for (const auto& key : keysave)
+        {
+            iniSection.parameters[key] = InIfindW(section, key);
         }
         result.push_back(iniSection);
-        section += wcslen(section) + 1;
+        keysave.clear();
     }
     return result;
 }
 
 
- /* CInI::M_InIData CInI::ReadAllA()
+std::vector<CInI::INI_MAP<std::string>> CInI::ReadAllA()
 {
-
+     std::vector<INI_MAP<std::string>> result;
+     std::vector<std::string> secsave;
+     std::vector<std::string> keysave;
+     GetAllSectionA(secsave);
+     result.reserve(secsave.size());
+     for (const auto& section : secsave)
+     {
+         //std::cout << section << std::endl;
+         INI_MAP<std::string> iniSection;
+         iniSection.section = section;
+         GetAllSectionKeyA(section, keysave);
+         for (const auto& key : keysave)
+         {
+             iniSection.parameters[key] = InIfindA(section, key);
+         }
+         result.push_back(iniSection);
+         keysave.clear();
+     }
+     return result;
 }
 
-CInI::P_InIData CInI::ReadAllA(int)
+std::vector<CInI::INI_PAIR<std::wstring>> CInI::ReadAllW(int) {
+    std::vector<INI_PAIR<std::wstring>> result;
+    std::vector<std::wstring> secsave;
+    std::vector<std::wstring> keysave;
+    GetAllSectionW(secsave);
+    result.reserve(secsave.size());
+    for (const auto& section : secsave) {
+        INI_PAIR<std::wstring> iniSection;
+        iniSection.section = section;
+        GetAllSectionKeyW(section, keysave);
+        for (const auto& key : keysave) {
+            iniSection.parameters.emplace_back(key, InIfindW(section, key));
+        }
+        result.push_back(iniSection);
+        keysave.clear();
+    }
+    return result;
+}
+
+std::vector<CInI::INI_PAIR<std::string>> CInI::ReadAllA(int) {
+    std::vector<INI_PAIR<std::string>> result;
+    std::vector<std::string> secsave;
+    std::vector<std::string> keysave;
+    GetAllSectionA(secsave);
+    result.reserve(secsave.size());
+    for (const auto& section : secsave) {
+        INI_PAIR<std::string> iniSection;
+        iniSection.section = section;
+        GetAllSectionKeyA(section, keysave);
+        for (const auto& key : keysave) {
+            iniSection.parameters.emplace_back(key, InIfindA(section, key));
+        }
+        result.push_back(iniSection);
+        keysave.clear();
+    }
+    return result;
+}
+
+CInI::InIexstat CInI::WriteValueA(const std::string& section, const std::string& key, const std::string& value)
 {
-    
-}*/
+    if (!WritePrivateProfileStringA(section.c_str(), key.c_str(), value.c_str(), this->lpFileNameA))
+    {
+        return INI_WRITE_ERR ;
+    }
+    return INI_WRITE_SUCC ;
+}
+CInI::InIexstat CInI::WriteValueW(const std::wstring& section, const std::wstring& key, const std::wstring& value)
+{
+    if (!WritePrivateProfileStringW(section.c_str(), key.c_str(), value.c_str(), this->lpFileNameW))
+    {
+        return INI_WRITE_ERR;
+    }
+    return INI_WRITE_SUCC;
+}
 
 
 char* CInI::wchUTF82StringUFT8(const const wchar_t* pWCStrKey)
